@@ -1,0 +1,201 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 
+% 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%----------------------------------------------------------------------------------------
+%	PACKAGES AND DOCUMENT CONFIGURATIONS
+%----------------------------------------------------------------------------------------
+
+\documentclass{article}
+%\usepackage[latin1]{inputenc}
+%\usepackage[T1]{fontenc}
+\usepackage[francais]{babel}
+%\usepackage{lmodern}
+\usepackage{amsmath}
+\usepackage{amssymb}
+%\usepackage{mathrsfs}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{eurosym}
+\usepackage{enumitem}
+\usepackage{hyperref}
+
+\usepackage{graphicx} % Required for the inclusion of images
+
+%\setlength\parindent{0pt} % Removes all indentation from paragraphs
+
+%\renewcommand{\labelenumi}{\alph{enumi}.} % Make numbering in the enumerate environment by letter rather than number (e.g. section 6)
+
+%----------------------------------------------------------------------------------------
+%	DOCUMENT INFORMATION
+%----------------------------------------------------------------------------------------
+
+\title{\textbf{TP - Codage audio}}
+\author{Adrien \textsc{Llave}}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{itemize}
+	\item Télécharger le dossier contenant les sources du TP à l'adresse suivante : \url{https://github.com/a-llave/SERI-BE-transform_coding}
+	\item Les scripts se trouvent dans le dossier \textbf{src}
+	\item Les fichiers audio se trouvent dans le dossier \textbf{resources}. Ils sont échantillonnées à 16~kHz et quantifiés à 16~bits
+	\item Ouvrir \textsc{Matlab}
+\end{itemize}
+
+
+L'objectif de cette séance de travaux pratiques est de mettre en \oe uvre un codage par transformée appliqué à un signal audio. Tout d'abord, il vous faudra bien comprendre le traitement par bloc WOLA et vous familiariser avec la nature des signaux que vous manipulez. Puis, vous prendrez en main le quantificateur scalaire uniforme et étudierez son comportement sur un signal test et sur les extraits audio fournis.
+Alors, vous mettrez en \oe uvre le codage par transformée grâce aux connaissances acquises dans les 2 exercices préliminaires (et vos notes de cours, et l'internet). Enfin, vous comparerez les performances du codage par transformée et ses différentes variantes avec la quantification scalaire uniforme dans le domaine temporel.
+
+Vous disposez d'un script \textsc{Matlab} associé à chaque exercice, fonctionnel en l'état, qui doit vous servir de base. Vous n'aurez qu'à compléter les trous dans l'algorithme, afficher les données de manière pertinente et surtout n'oubliez pas d'écouter le résultat des traitements que vous appliquez au son.
+
+\paragraph{N.B.} L'aide de \textsc{Matlab} est souvent d'un grand recours.
+
+%----------------------------------------------------------------------------------------
+%	EXERCICE 1
+%----------------------------------------------------------------------------------------
+\section{Exercice 1 : Weighted overlap-add (WOLA) \small{20~min}}
+\begin{itemize}
+	\item Ouvrir le fichier \textbf{src/WOLA\_base.m}
+\end{itemize}
+
+Ce script met en \oe uvre un traitement par trame avec un recouvrement de 50 \%.
+\begin{itemize}
+	\item Implémenter le coefficient d'aplatissement spectral
+\end{itemize}
+
+\begin{enumerate}[label=\textbf{\arabic*})]
+	\item Faire varier la taille de la trame. Quel est l'impact de la taille de la trame sur le coefficient d'aplatissement spectral pour le signal \textbf{sweep\_16k.wav}? Pourquoi ?
+	\begin{itemize}
+		\item Ouvrir le fichier audio \textbf{parole\_16k.m}
+	\end{itemize}
+	\item Connaissant la fréquence d’échantillonnage, quelle taille de la trame en nombre d’échantillon choisissez-vous ? Justifier.
+	\item Dans quel contexte est-il nécessaire d'utiliser le traitement par bloc avec recouvrement et pourquoi ?
+	\item Quel est l’inconvénient du traitement par trame avec recouvrement lorsqu’on veut faire de la compression de données ? Comment minimiser cet inconvénient ?
+\end{enumerate}
+
+%----------------------------------------------------------------------------------------
+%	EXERCICE 2
+%----------------------------------------------------------------------------------------
+\section{Exercice 2 : Quantification scalaire uniforme \small{20~min}}
+
+\begin{itemize}
+	\item Ouvrir le fichier \textbf{src/uni\_scal\_quantif\_base.m}
+\end{itemize}
+
+\begin{enumerate}[label=\textbf{\arabic*})]
+	\item Décrire les méthodes d'arrondis possible avec la fonction \textbf{myQuantize2}.
+	\item Afficher l'erreur de quantification pour chaque méthode. En déduire quel est l'avantage de chacune d'entre elles ?
+	\item Il est possible d'avoir un état représentant le zéro ou pas. A votre avis, quel conséquence cela peut-il avoir sur le signal quantifié ?
+	\begin{itemize}
+		\item Charger le signal \textbf{parole\_16k.wav} à l'aide de la fonction \textbf{audioread}
+		\item Sous-quantifier la parole grâce à la fonction \textbf{myQuantize2}
+		\item Écouter les signaux audio à l'aide de la fonction \textbf{sound}
+	\end{itemize}
+	\item A partir d'une sous-quantification de combien de bits le bruit de quantification devient-il audible ?
+\end{enumerate}
+
+%----------------------------------------------------------------------------------------
+%	EXERCICE 3
+%----------------------------------------------------------------------------------------
+\section{Exercice 3 : Codage par transformée \small{2~h}}
+
+\begin{itemize}
+	\item Ouvrir le fichier \textbf{src/TC\_base.m}
+	\item Exécuter le script, vous devez observer 2 figures cote à cote, l'une est le signal temporel sur la trame considérée, l'autre est son spectre d'amplitude.
+\end{itemize}
+
+Ce script effectue une sous-quantification d'un signal audio dans le domaine temporel et dans le domaine fréquentiel à l'aide d'une chaine WOLA.
+
+\begin{enumerate}[label=\textbf{\arabic*})]
+	\item A partir de ce que vous observez, la DFT (discret Fourier transform) vous semble être une transformation adaptée au codage par transformée ? Justifier.
+	\item Comparer visuellement les signaux quantifiés dans le domaine temporel et dans le domaine fréquentiel. Comparer leur SNR et écouter les. Commenter.
+	
+	\begin{itemize}
+		\item Répartir de manière optimale le nombre de bits par fréquence
+		
+		\textbf{Rappel :}
+		$$
+		R_k = R_0 + \frac{1}{2} log_2\left(\frac{\sigma_{y(k)}^2}{\left(\prod\limits_k^N \sigma_{y(k)}^2\right)^{\frac{1}{ N}}}\right)
+		$$
+	\end{itemize}
+
+	\item Reste-t-il des bits non-alloués ? Si oui, en moyenne combien et avec quel écart-type ?
+	
+	\begin{itemize}
+		\item L’algorithme de Huang-Schulteiss modifié (voir annexe~\ref{hsm_algo}) permet utiliser l’ensemble de la ressource binaire en répartissant les bits non-alloués. Mettre en \oe uvre cet algorithme.
+	\end{itemize}
+	\item Cet algorithme est-il viable dans une implémentation temps-réel et pourquoi ?
+	\begin{itemize}
+		\item Un algorithme glouton permet d'atteindre un optimum local en général satisfaisant pour un problème d'optimisation où la solution n'est pas atteignable dans un temps polynomial. Mettre en œuvre l’algorithme glouton proposé en annexe~\ref{greedy_algo}.
+	\end{itemize}
+	\item Comparer les SNR correspondant à chaque algorithme. Sur la base de ce critère, quel algorithme est le plus performant selon vous et pourquoi ?
+	\item Écouter les signaux audio issus de chaque algorithme. Quel algorithme est le plus performant selon vous et pourquoi ?
+	\item Le SNR vous semble-t-il être un critère objectif adéquate pour quantifier le rapport signal sur bruit que vous percevez ?
+	\item Comparer la moyenne et l'écart type du temps d'éxecution pour chaque algorithme grâce aux fonctions \textbf{tic} et \textbf{toc}. Sur la base de ce critère, quel algorithme est le plus performant selon vous et pourquoi ?
+	
+\end{enumerate}
+
+
+%----------------------------------------------------------------------------------------
+
+%----------------------------------------------------------------------------------------
+%----------------------------------------------------------------------------------------
+%   ANNEXES
+%----------------------------------------------------------------------------------------
+%----------------------------------------------------------------------------------------
+\appendix
+%----------------------------------------------------------------------------------------
+%   NORME DE CODAGE
+%----------------------------------------------------------------------------------------
+\section{Norme de codage}
+Afin de faciliter la lecture du code, les scripts que vous allez manipuler suivent une convention de nommage des variables. Le nom des variables suivent quelques règles simple de sorte à avoir une idée en un coup d'\oe il du type de données qu'elles contiennent. De manière générale, je vous encourage à en suivre une dans vos projets personnels mais surtout lors de projets collaboratifs, vous gagnerez beaucoup de temps.
+
+\begin{tabular}{c|c|c}
+\hline
+Type & Extension & Exemple \\
+\hline
+string & \_s & myString\_s \\
+integer & \_n & myInt\_n \\
+float & \_f & myFloat\_f \\
+vector & \_v & myVector\_v \\
+matrix & \_m & myMat\_m \\
+structure & \_S & myStruct\_S \\
+cell & \_C & myString\_C \\
+\hline
+\end{tabular}
+
+%----------------------------------------------------------------------------------------
+%   Algorithme de Huang-Schulteiss modifié
+%----------------------------------------------------------------------------------------
+\section{Algorithme de Huang-Schulteiss modifié}
+\label{hsm_algo}
+\begin{enumerate}[label=\textbf{\arabic*})]
+	\item Calculer les $R_k$ optimaux
+	\item Si certains $R_k$ sont négatifs : les forcer à 0, recommencer l'étape \textbf{1} en retirant les coefficients $k$ concernés
+	\item Répéter l'étape \textbf{2} jusqu'à ne plus avoir de $R_k$ négatifs
+	\item Tronquer\footnote{Arrondis à l'entier inférieur} les $R_k$
+	\item Allouer les bits restant aux coefficients avec l'erreur de quantification maximum
+\end{enumerate}
+
+\section{Algorithme glouton}
+\label{greedy_algo}
+\begin{enumerate}[label=\textbf{\arabic*})]
+	\item Initialisation
+	\begin{itemize}
+		\item $R_k = 0$ $\forall k$
+		\item $D_k = \sigma_k^2$ $\forall k$
+	\end{itemize}
+	\item Tant que $\sum\limits_k^N R_k \leqslant N.R_0$
+	\begin{itemize}
+		\item $l$ = argmax$_k D_k$
+		\item $R_l \leftarrow R_l + 1$
+		\item $D_l \leftarrow D_l/4$
+	\end{itemize}
+\end{enumerate}
+
+\end{document}
