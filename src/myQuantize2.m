@@ -44,7 +44,7 @@ end
 if nargin < 2
     error('Need at least 2 input arguments');
 end
-
+assert( isscalar( R_targ_n ), 'ERROR: Second input argument have to be a scalar' )
 assert( R_targ_n == int8(R_targ_n), 'ERROR: Second input argument have to be an integer' )
 
 if R_targ_n <= 0

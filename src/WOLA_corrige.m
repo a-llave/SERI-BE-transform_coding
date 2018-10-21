@@ -123,10 +123,3 @@ pause(numel(voiceOrig_v)/Fs+0.5)
 sound(sigQT_v,Fs)
 
 
-
-
-
-
-
-
-

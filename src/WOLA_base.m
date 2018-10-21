@@ -10,7 +10,7 @@ addpath('../resources')
 % WOLA
 win_size_n  = 255; % window size (sample)
 hop         = floor(win_size_n/2); % overlap (sample)
-nb_FFT_n    = 256; % FFT sample number
+nb_FFT_n    = win_size_n; % FFT sample number
 nb_freq_n   = nb_FFT_n/2+1; % frequency number
 win_analysis    = sqrt(hann(win_size_n))'; % Analysis window
 win_synthesis   = sqrt(hann(win_size_n))'; % Synthesis window
@@ -23,7 +23,7 @@ plot_frame_b = true;
 
 %% LOAD AUDIO FILE
 % [voiceOrig_v, Fs]   = audioread('sweep_16k.wav');
-[voiceOrig_v, Fs]   = audioread('artaud_16k.wav');
+[voiceOrig_v, Fs]   = audioread('parole_16k.wav');
 voiceOrig_v         = voiceOrig_v(1:Fs*5, 1);
 
 numSample_n         = numel( voiceOrig_v );
@@ -34,9 +34,9 @@ freq_v  = linspace(0,Fs/2,nb_freq_n);
 %% WOLA
 numFrame_n      = floor(numSample_n/(win_size_n-hop));
 
-axis_4plot_v   = zeros(1,numFrame_n);
-FlatCoef_v     = zeros(1,numFrame_n);
-voice_v      = zeros(1,numel(voiceOrig_v));
+axis_4plot_v    = zeros(1,numFrame_n);
+FlatCoef_v      = zeros(1,numFrame_n);
+voice_v         = zeros(1,numel(voiceOrig_v));
 
 for frm_id = 1:numFrame_n
     % DEFINE START AND END SAMPLES OF THE FRAME
@@ -52,8 +52,7 @@ for frm_id = 1:numFrame_n
     % ---- Compute PSD, Flatness coeff and power of PSD
     sigTF_v             = fft( sig_v, nb_FFT_n ) ./ sqrt(win_size_n/2);
     sigTF_v             = sigTF_v(1:nb_freq_n);
-%     FlatCoef_v(frm_id)  = 0;
-    FlatCoef_v(frm_id)  = geomean(abs(sigTF_v).^2) / mean(abs(sigTF_v).^2);
+    FlatCoef_v(frm_id)  = 0;
     
     % Reconstruct total signals quant
     voice_v(in_n:out_n)   = voice_v(in_n:out_n) + win_synthesis .* sig_v;
@@ -67,8 +66,6 @@ for frm_id = 1:numFrame_n
         suptitle(sprintf('Wiener entropy: %0.2f', FlatCoef_v(frm_id)))
         subplot(numRow_n,numCol_n,1) %%%%%%%%% 1
         plot( sig_v, 'displayname', 'Original signal' )
-        hold on
-        plot( sigQT_v, 'displayname', 'Reconstructed signal' )
         legend show
         xlim([1 win_size_n])
         ylim(0.5*[-1 1])
@@ -88,42 +85,15 @@ for frm_id = 1:numFrame_n
     end % end
 end % ll
 
-%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% TIME DOMAIN QUANTIFICATION
-% sigQT_v = myQuantize2( sig_v, R_targ_n );
-sigQT_v = sig_v;
-
-%% SNR
-noiseT_v    = voiceOrig_v' - voice_v;
-SNR_T_f     = 20*log10( rms( voiceOrig_v ) / rms( noiseT_v ) );
-
-fprintf('%i \n', SNR_T_f);
-
-
 %% PLOT
 figure(2)
-plot( noiseT_v, 'DisplayName', 'Time domain Q noise' )
-legend show
-xlabel('Time (sample)')
-ylabel('Magnitude')
-title('Quantification noise')
-
-
-figure(3)
 hold off
-plot( voiceOrig_v, 'DisplayName', 'Original' )
-hold on
-plot( voice_v, 'DisplayName', 'Quantized Time domain' )
-plot(axis_4plot_v, FlatCoef_v, 'displayname', 'Flatness coefficient' )
-legend show
-title('Signals')
+plot( voiceOrig_v )
+xlabel('Time (sample)')
+title('Original signal')
 
 %% Sound
-% sound(voiceOrig_v,Fs)
-% pause(duration+0.5)
-% sound(voiceQT_v,Fs)
+sound(voiceOrig_v,Fs)
 
 
 

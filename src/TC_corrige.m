@@ -8,9 +8,9 @@ addpath('../resources')
 %% Param
 
 % WOLA
-win_size_n  = 256; % window size (sample)
+win_size_n  = 255; % window size (sample)
 hop         = floor(win_size_n/2); % overlap (sample)
-nb_FFT_n    = 256; % FFT sample number
+nb_FFT_n    = win_size_n; % FFT sample number
 nb_freq_n   = floor(nb_FFT_n/2)+1; % frequency number
 win_analysis    = sqrt(hann(win_size_n))'; % Analysis window
 win_synthesis   = sqrt(hann(win_size_n))'; % Synthesis window
@@ -22,14 +22,15 @@ else
 end
 
 % Quantizer
-R0_n    = 4;
+R0_n    = 2;
 
 % PLOT
 plot_frame_b    = false;
 plot_greedy_b   = false;
 
 %% LOAD AUDIO FILE
-[voiceOrig_v, Fs]   = audioread('artaud_16k.wav');
+% [voiceOrig_v, Fs]   = audioread('music_pop_16k.wav');
+[voiceOrig_v, Fs]   = audioread('parole_16k.wav');
 voiceOrig_v         = voiceOrig_v(1:Fs*5, 1);
 
 numSample_n         = numel( voiceOrig_v );
@@ -47,6 +48,7 @@ sigQFopt_v     = zeros(1,numel(voiceOrig_v));
 sigQFhsm_v     = zeros(1,numel(voiceOrig_v));
 sigQFgrd_v     = zeros(1,numel(voiceOrig_v));
 
+exe_time_nve_v = zeros(1,numFrame_n);
 exe_time_opt_v = zeros(1,numFrame_n);
 exe_time_grd_v = zeros(1,numFrame_n);
 exe_time_hsm_v = zeros(1,numFrame_n);
@@ -54,6 +56,10 @@ exe_time_hsm_v = zeros(1,numFrame_n);
 iterLimit_n = 100;
 
 for frm_id = 1:numFrame_n
+    if mod(frm_id, 50) == 0
+        disp('--------------------------')
+        fprintf('Frame %.0f/%.0f\n', frm_id, numFrame_n);
+    end
     % DEFINE START AND END SAMPLES OF THE FRAME
     in_n    = (frm_id-1)*hop+1;
     out_n   = (frm_id-1)*hop+win_size_n;
@@ -75,7 +81,9 @@ for frm_id = 1:numFrame_n
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % ---- FREQUENCY DOMAIN QUANTIZING - NAIVE ALLOCATION
+    tic % Start execution time counting
     coeffQFMean_v   = myQuantize2( coeff_v, R0_n );
+    exe_time_nve_v(frm_id) = toc*1000; % store execution time
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -157,62 +165,57 @@ for frm_id = 1:numFrame_n
         end
     end % iterLimit_n
     
-    nbBit_old_v = nbBit_v;
+    
     nbBit_v     = floor( nbBit_v );
+    nbBit_old_v     = nbBit_v;
     
+    nb_bit_2alloc_n = R0_n * nb_freq_n * 2 - sum( nbBit_v );
     coeffQFhsm_v    = zeros(1, numel(coeff_v));
-    for jj = 1:nb_freq_n
-        coeffQFhsm_v(jj)             = myQuantize2( real(sigTF_v(jj)), nbBit_v(jj), 'with', [-1 1] );
-        coeffQFhsm_v(jj+nb_freq_n)   = myQuantize2( imag(sigTF_v(jj)), nbBit_v(jj+nb_freq_n), 'with', [-1 1] );
-    end
     
-%     nb_bit_2alloc_n = R_targ_n * nb_freq_n * 2 - sum( nbBit_v );
-%     coeffQFhsm_v    = zeros(1, numel(coeff_v));
-%     for ii = 1:nb_bit_2alloc_n
-%         for jj = 1:nb_freq_n
-%             if nbBit_v(jj) == 0
-%                 coeffQFhsm_v(jj)             = 0;
-%             else
-%                 coeffQFhsm_v(jj)             = myQuantize2( real(sigTF_v(jj)), nbBit_v(jj), 'with', [-1 1] );
-%             end
-%             if nbBit_v(jj+nb_freq_n) == 0
-%                 coeffQFhsm_v(jj+nb_freq_n)   = 0;
-%             else
-%                 coeffQFhsm_v(jj+nb_freq_n)   = myQuantize2( imag(sigTF_v(jj)), nbBit_v(jj+nb_freq_n), 'with', [-1 1] );
-%             end
-%         end
-%         if max( nbBit_v ) >= R_init_n
-%             break;
-%         end
-%         mask_coeff_v        = coeff_v ~= 0;
-%         err_bitalloc_v      = zeros(1, numel( coeff_v ));
-%         err_bitalloc_v(mask_coeff_v)      = abs(coeff_v(mask_coeff_v) - coeffQFhsm_v(mask_coeff_v));
-%         [~, idx_n]          = max( err_bitalloc_v );
-%         nbBit_v( idx_n )    = nbBit_v( idx_n ) + 1;
-%         
-% %         if mod(frm_id,1) == 0
-% %             figure(140)
-% %             subplot(1,3,1)
-% %             hold off
-% %             plot( err_bitalloc_v )
-% %             hold on
-% %             plot( [idx_n idx_n], [0 max(err_bitalloc_v)] )
-% %             title( num2str( R_targ_n * nb_freq_n * 2 - sum( nbBit_v ) ) )
-% %             subplot(1,3,2)
-% %             hold off
-% %             plot( nbBit_v )
-% %             subplot(1,3,3)
-% %             hold off
-% %             plot( [real(sigTF_v) imag(sigTF_v)] )
-% %             hold on
-% %             plot( spcQFMean_v )
-% %             pause(0.1)
-% %         end
-% 
-%     end % ii
-    exe_time_hsm_v(frm_id) = toc*1000; % store execution time
+    nb_iter_n = ceil(nb_bit_2alloc_n / (nb_freq_n*2) );
+    
+    for ii = 1:nb_iter_n
+        
+        for jj = 1:nb_freq_n
+            coeffQFhsm_v(jj)             = myQuantize2( real(sigTF_v(jj)), nbBit_v(jj));
+            coeffQFhsm_v(jj+nb_freq_n)   = myQuantize2( imag(sigTF_v(jj)), nbBit_v(jj+nb_freq_n));
+        end
+        err_bitalloc_v      = abs(coeff_v - coeffQFhsm_v);
+        [temp, originalpos] = sort( err_bitalloc_v, 'descend' );
+        idx_v               = originalpos(1:min([nb_freq_n*2  nb_bit_2alloc_n]));
+        nbBit_v( idx_v )    = nbBit_v( idx_v ) + 1;
 
-%     coeffQFhsm_v = coeffQFopt_v;
+        for jj = 1:nb_freq_n
+            coeffQFhsm_v(jj)             = myQuantize2( real(sigTF_v(jj)), nbBit_v(jj));
+            coeffQFhsm_v(jj+nb_freq_n)   = myQuantize2( imag(sigTF_v(jj)), nbBit_v(jj+nb_freq_n));
+        end
+        nb_bit_2alloc_n = R0_n * nb_freq_n * 2 - sum( nbBit_v );
+        err_bitalloc_new_v      = abs(coeff_v - coeffQFhsm_v);
+    end % for ii = 1:nb_iter_n
+         
+%     if mod(frm_id,10) == 0
+%         figure(140)
+%         subplot(1,3,1)
+%         hold off
+%         plot( err_bitalloc_v )
+%         hold on
+%         plot( err_bitalloc_new_v )
+%         title('Quantification error in freq domain')
+%         subplot(1,3,2)
+%         hold off
+%         plot( nbBit_old_v )
+%         hold on
+%         plot( nbBit_v )
+%         subplot(1,3,3)
+%         hold off
+%         plot( coeff_v )
+%         hold on
+%         plot( coeffQFhsm_v )
+%         pause(0.1)
+%     end
+
+    
+    exe_time_hsm_v(frm_id) = toc*1000; % store execution time
     % >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     % >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     
@@ -224,18 +227,11 @@ for frm_id = 1:numFrame_n
     nbBit_v = zeros(1, numel( PowerCoeff_v ));
     D_v     = PowerCoeff_v;
     % ---- Process
-    for ii = 1:iterLimit_n
-        nbBitReste_n    = nb_freq_n * 2 * R0_n - sum( nbBit_v );
-        if nbBitReste_n <= 0
-            break;
-        end
+    for ii = 1:nb_freq_n * 2 * R0_n
         [ ~, idx_max_n ]    = max( D_v );
         nbBit_v(idx_max_n)  = nbBit_v(idx_max_n) + 1;
         D_v( idx_max_n )    = D_v(idx_max_n) / 4;
-        if ii == iterLimit_n
-            warning(sprintf('The condition was not achieved under %i iterations',iterLimit_n));
-            nbBit_v( nbBit_v < 0 )      = 0;
-        end
+        
         if plot_greedy_b && sum( abs(sig_v > 0.1) > 0.1 ) ~= 0
             figure(1)
             subplot(2,1,1)
@@ -342,14 +338,20 @@ disp('------------------------ SNR ----------------------------')
 fprintf('SNR (time domain quantizing): %.2f dB\n', SNR_T_f);
 fprintf('SNR (naive freq domain quantizing): %.2f dB\n', SNR_FMean_f);
 fprintf('SNR (optimal freq domain quantizing): %.2f dB\n', SNR_Fopt_f);
-fprintf('SNR (HSM freq domain quantizing): %.2f dB\n', SNR_Fopt_f);
+fprintf('SNR (HSM freq domain quantizing): %.2f dB\n', SNR_Fhsm_f);
 fprintf('SNR (greedy freq domain quantizing): %.2f dB\n', SNR_Fgrd_f);
 
 %% EXECUTION TIME
 disp('------------------------ Exe. time ----------------------------')
+fprintf('Exe time (naive freq domain quantizing):\n');
+fprintf('   mean: %.2f ms\n', mean( exe_time_nve_v ));
+fprintf('   standard deviation: %.2f ms\n', std( exe_time_nve_v ));
 fprintf('Exe time (optimal freq domain quantizing):\n');
 fprintf('   mean: %.2f ms\n', mean( exe_time_opt_v ));
 fprintf('   standard deviation: %.2f ms\n', std( exe_time_opt_v ));
+fprintf('Exe time (HSM freq domain quantizing):\n');
+fprintf('   mean: %.2f ms\n', mean( exe_time_hsm_v ));
+fprintf('   standard deviation: %.2f ms\n', std( exe_time_hsm_v ));
 fprintf('Exe time (greedy freq domain quantizing):\n');
 fprintf('   mean: %.2f ms\n', mean( exe_time_grd_v ));
 fprintf('   standard deviation: %.2f ms\n', std( exe_time_grd_v ));
@@ -369,7 +371,6 @@ title('Quantizing noise')
 
 
 figure(3)
-subplot(2,1,1)
 hold off
 plot( voiceOrig_v, 'DisplayName', 'Original' )
 hold on
@@ -380,10 +381,13 @@ plot( sigQFgrd_v, 'DisplayName', 'Greedy freq domain quantizing' )
 plot(axis_4plot_v, FlatCoef_v, 'displayname', 'Flatness coefficient' )
 legend show
 title('Signals')
-subplot(2,1,2)
+
+figure(4)
 hold off
-plot( axis_4plot_v, exe_time_opt_v, 'displayname', 'Optimal floor algo exe. time' )
+plot( axis_4plot_v, exe_time_nve_v, 'displayname', 'Naive algo exe. time' )
 hold on
+plot( axis_4plot_v, exe_time_opt_v, 'displayname', 'Optimal floor algo exe. time' )
+plot( axis_4plot_v, exe_time_hsm_v, 'displayname', 'HSM algo exe. time' )
 plot( axis_4plot_v, exe_time_grd_v, 'displayname', 'Greedy algo exe. time' )
 legend show
 xlabel('Time (sample)')
