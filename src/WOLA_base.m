@@ -32,7 +32,7 @@ R_init_n            = 16;
 freq_v  = linspace(0,Fs/2,nb_freq_n);
 
 %% WOLA
-numFrame_n      = floor(numSample_n/(win_size_n-hop));
+numFrame_n      = floor(numSample_n/(win_size_n-hop))-1;
 
 axis_4plot_v    = zeros(1,numFrame_n);
 FlatCoef_v      = zeros(1,numFrame_n);
