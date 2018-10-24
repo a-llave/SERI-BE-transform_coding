@@ -92,6 +92,12 @@ Ce script met en \oe uvre un traitement par trame avec un recouvrement de 50 \%.
 	\item Implémenter le coefficient d'aplatissement spectral
 \end{itemize}
 
+\textbf{Rappel :}
+		$$
+		\xi = \frac{\left(\prod\limits_k^N \sigma_{y(k)}^2\right)^\frac{1}{N}}{\frac{1}{N} \sum\limits_k^N \sigma_{y(k)}^2}
+		\qquad , \forall \ \sigma_{y(k)}^2 \neq 0
+		$$
+
 \begin{enumerate}[label=\textbf{\arabic*})]
 	\item Faire varier la taille de la trame. Quel est l'impact de la taille de la trame sur le coefficient d'aplatissement spectral pour le signal \textbf{sweep\_16k.wav}? Pourquoi ?
 	\begin{itemize}
@@ -120,11 +126,12 @@ Ce script effectue une sous-quantification d'un signal audio dans le domaine tem
 	\item Comparer visuellement les signaux quantifiés dans le domaine temporel et dans le domaine fréquentiel. Comparer leur SNR et écouter les. Commenter.
 	
 	\begin{itemize}
-		\item Dans la section du code commentée \emph{FREQUENCY DOMAIN QUANTIZING - OPTIMAL ALLOCATION FLOORED}, implémenter la répartition optimale du nombre de bits par coefficient fréquence et la quantification associée. Arrondir à l'entier inférieur la solution optimale d'allocation de bits.
+		\item Dans la section du code commentée \emph{FREQUENCY DOMAIN QUANTIZING - OPTIMAL ALLOCATION FLOORED}, implémenter la répartition optimale du nombre de bits par coefficient fréquence et la quantification associée. Arrondir à l'entier inférieur la solution optimale d'allocation de bits et forcer à 0 les $R_k$ négatifs.
 		
 		\textbf{Rappel :}
 		$$
 		R_k = R_0 + \frac{1}{2} log_2\left(\frac{\sigma_{y(k)}^2}{\left(\prod\limits_k^N \sigma_{y(k)}^2\right)^{\frac{1}{ N}}}\right)
+		\qquad , \forall \ \sigma_{y(k)}^2 \neq 0
 		$$
 	\end{itemize}
 
@@ -181,10 +188,22 @@ cell & \_C & myString\_C \\
 \label{hsm_algo}
 \begin{enumerate}[label=\textbf{\arabic*})]
 	\item Calculer les $R_k$ optimaux
-	\item Si certains $R_k$ sont négatifs : les forcer à 0, recommencer l'étape \textbf{1} en retirant les coefficients $k$ concernés
-	\item Répéter l'étape \textbf{2} jusqu'à ne plus avoir de $R_k$ négatifs
+	\item Tant que $\exists R_k < 0$
+	\begin{itemize}
+		\item $R_k = 0 \qquad , \ \forall k \ | \ R_k < 0$
+		\item Calculer les $R_k$ optimaux, $\ \forall k \ | \ R_k \neq 0$
+	\end{itemize}
 	\item Tronquer\footnote{Arrondis à l'entier inférieur} les $R_k$
-	\item Allouer les bits restant aux coefficients avec l'erreur de quantification maximum
+	\item Quantifier les coefficients
+	\item Calculer l'erreur de quantification $Q_k$
+	\item Tant que $\sum\limits_k R_k < N.R_0$
+	\begin{itemize}
+		\item $l$ = argmax$_k Q_k$
+		\item $ R_l \leftarrow R_l + 1$
+		\item Quantifier le l-ième coefficient
+		\item Calculer l'erreur de quantification $Q_l$
+	\end{itemize}
+
 \end{enumerate}
 
 \section{Algorithme glouton}
@@ -195,7 +214,7 @@ cell & \_C & myString\_C \\
 		\item $R_k = 0$ $\forall k$
 		\item $D_k = \sigma_k^2$ $\forall k$
 	\end{itemize}
-	\item Tant que $\sum\limits_k^N R_k \leqslant N.R_0$
+	\item Tant que $\sum\limits_k^N R_k < N.R_0$
 	\begin{itemize}
 		\item $l$ = argmax$_k D_k$
 		\item $R_l \leftarrow R_l + 1$
